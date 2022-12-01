@@ -9,3 +9,4 @@ export * from './interfaces/nats-stream-config.interface';
 export * from './utils/server-consumer-options-builder';
 export * from './nats-jetstream.context';
 export * from './nats-jetstream-client';
+export * from './nats-jetstream-key-store';

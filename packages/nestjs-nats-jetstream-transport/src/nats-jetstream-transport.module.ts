@@ -3,6 +3,7 @@ import { NatsJetStreamClientProxy } from './client';
 import { NATS_JETSTREAM_OPTIONS } from './constants';
 import { NatsJetStreamClientOptions } from './interfaces/nats-jetstream-client-options.interface';
 import { NatsJetStreamClient } from './nats-jetstream-client';
+import { NatsJetStreamKeyStore } from './nats-jetstream-key-store';
 
 // noinspection JSUnusedGlobalSymbols
 export class NatsJetStreamTransport {
@@ -13,7 +14,8 @@ export class NatsJetStreamTransport {
         useValue: options,
       },
       NatsJetStreamClientProxy,
-      NatsJetStreamClient
+      NatsJetStreamClient,
+      NatsJetStreamKeyStore,
     ];
 
     return {
@@ -22,6 +24,7 @@ export class NatsJetStreamTransport {
       module: NatsJetStreamTransport,
     };
   }
+  // FIXME looks like its buggy
   static registerAsync(options: any): DynamicModule {
     return {
       module: NatsJetStreamTransport,
@@ -35,7 +38,7 @@ export class NatsJetStreamTransport {
         NatsJetStreamClientProxy,
         NatsJetStreamClient,
       ],
-      exports: [NatsJetStreamClientProxy, NatsJetStreamClient],
+      exports: [NatsJetStreamClientProxy, NatsJetStreamClient, NatsJetStreamKeyStore],
     };
   }
 }
