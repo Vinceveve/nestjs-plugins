@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy, ReadPacket, WritePacket } from '@nestjs/microservices';
-import { Codec, connect, JSONCodec, NatsConnection } from 'nats';
+import { Codec, connect, JetStreamPublishOptions, JSONCodec, NatsConnection } from 'nats';
 import { NATS_JETSTREAM_OPTIONS } from './constants';
+import { JetStreamEvent } from './interfaces/nats-event-options.interface';
 import { NatsJetStreamClientOptions } from './interfaces/nats-jetstream-client-options.interface';
 
 @Injectable()
@@ -51,10 +52,19 @@ export class NatsJetStreamClientProxy extends ClientProxy {
   }
 
   protected async dispatchEvent(packet: ReadPacket): Promise<any> {
-    const payload = this.codec.encode(packet.data);
+    let jetStreamPublishOpts:JetStreamPublishOptions, payload:any|JetStreamEvent;
+    if(packet.data.options && packet.data.event) {
+      jetStreamPublishOpts = packet.data.options;
+      payload = this.codec.encode(packet.data.event);
+    }
+    else {
+      payload = this.codec.encode(packet.data);
+      // TODO should be ignored
+      jetStreamPublishOpts = this.options.jetStreamPublishOptions;
+    }
+    
     const subject = this.normalizePattern(packet.pattern);
     const jetStreamOpts = this.options.jetStreamOption;
-    const jetStreamPublishOpts = this.options.jetStreamPublishOptions;
     const js = this.nc.jetstream(jetStreamOpts);
     return js.publish(subject, payload, jetStreamPublishOpts);
   }
