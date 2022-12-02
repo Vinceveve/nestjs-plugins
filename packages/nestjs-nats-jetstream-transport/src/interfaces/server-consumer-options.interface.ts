@@ -1,5 +1,7 @@
 export interface ServerConsumerOptions {
   // https://nats.io/blog/jetstream-java-client-03-consume/
+  // https://docs.nats.io/nats-concepts/jetstream/consumers
+  subject: string;
   durable?: string;
   deliverPolicy?:
     | 'All'
@@ -35,4 +37,8 @@ export interface ServerConsumerOptions {
   orderedConsumer?: boolean;
   deliverGroup?: string;
   headersOnly?: boolean;
+}
+
+export interface JetStreaConsumers {
+  consumers:ServerConsumerOptions[]
 }

@@ -12,6 +12,7 @@ import { NatsContext, NatsJetStreamContext } from './nats-jetstream.context';
 import { serverConsumerOptionsBuilder } from './utils/server-consumer-options-builder';
 import { from } from 'rxjs';
 import { NatsJetStreamServerOptions } from './interfaces/nats-jetstream-server-options.interface';
+import { ServerConsumerOptions } from '@nestjs-plugins/nestjs-nats-jetstream-transport';
 
 export class NatsJetStreamServer
   extends Server
@@ -48,68 +49,73 @@ export class NatsJetStreamServer
     await this.nc.close();
     this.nc = undefined;
   }
-
   private async bindEventHandlers() {
     const eventHandlers = [...this.messageHandlers.entries()].filter(
       ([, handler]) => handler.isEventHandler,
     );
 
     const js = this.nc.jetstream(this.options.jetStreamOptions);
-
-    for (const [subject, eventHandler] of eventHandlers) {
-      const consumerOptions = serverConsumerOptionsBuilder(
-        this.options.consumerOptions,
-        subject,
-      );
-      const subscription = await js.subscribe(subject, consumerOptions);
-      this.logger.log(`Subscribed to ${subject} events`);
-      const done = (async () => {
-        for await (const msg of subscription) {
-          try {
-            const data = this.codec.decode(msg.data);
-            const context = new NatsJetStreamContext([msg]);
-            this.send(from(eventHandler(data, context)), () => null);
-          } catch (err) {
-            this.logger.error(err.message, err.stack);
-            // specifies that you failed to process the server and instructs
-            // the server to not send it again (to any consumer)
-            msg.term();
-          }
+    
+    this.options.consumers.forEach(async (options:ServerConsumerOptions) => {
+      const subject = options.subject ;
+      const consumerOptions = serverConsumerOptionsBuilder(options,subject);
+      // Maps event handler with consumer name
+      for (const [mappedKey, eventHandler] of eventHandlers) {
+        if (mappedKey == subject) {
+          const subscription = await js.subscribe(subject, consumerOptions);
+          this.logger.log(`Subscribed to ${subject} events`);
+          const done = (async () => {
+            for await (const msg of subscription) {
+              try {
+                const data = this.codec.decode(msg.data);
+                const context = new NatsJetStreamContext([msg]);
+                this.send(from(eventHandler(data, context)), () => null);
+              } catch (err) {
+                this.logger.error(err.message, err.stack);
+                // specifies that you failed to process the server and instructs
+                // the server to not send it again (to any consumer)
+                msg.term();
+              }
+            }
+          })();
+          done.then(() => {
+            subscription.destroy();
+            this.logger.log(`Unsubscribed ${subject}`);
+          });      
         }
-      })();
-      done.then(() => {
-        subscription.destroy();
-        this.logger.log(`Unsubscribed ${subject}`);
-      });
-    }
+      }
+    })
   }
 
   private bindMessageHandlers() {
     const messageHandlers = [...this.messageHandlers.entries()].filter(
       ([, handler]) => !handler.isEventHandler,
     );
-
-    for (const [subject, messageHandler] of messageHandlers) {
-      const subscriptionOptions: SubscriptionOptions = {
-        queue: this.options.consumerOptions.deliverTo,
-        callback: async (err, msg) => {
-          if (err) {
-            return this.logger.error(err.message, err.stack);
-          }
-          const payload = this.codec.decode(msg.data);
-          const context = new NatsContext([msg]);
-          const response$ = this.transformToObservable(
-            messageHandler(payload, context),
-          );
-          this.send(response$, (response) =>
-            msg.respond(this.codec.encode(response as JSON)),
-          );
-        },
-      };
-
-      this.nc.subscribe(subject, subscriptionOptions);
-      this.logger.log(`Subscribed to ${subject} messages`);
-    }
+    this.options.consumers.forEach(async (options:ServerConsumerOptions) => {
+      const subject = options.subject ;
+      const consumerOptions = serverConsumerOptionsBuilder(options,subject);
+      // Maps event handler with consumer name
+      for (const [mappedKey, messageHandler] of messageHandlers) {
+        const subscriptionOptions: SubscriptionOptions = {
+          queue: options.deliverTo,
+          callback: async (err, msg) => {
+            if (err) {
+              return this.logger.error(err.message, err.stack);
+            }
+            const payload = this.codec.decode(msg.data);
+            const context = new NatsContext([msg]);
+            const response$ = this.transformToObservable(
+              messageHandler(payload, context),
+            );
+            this.send(response$, (response) =>
+              msg.respond(this.codec.encode(response as JSON)),
+            );
+          },
+        };
+        this.nc.subscribe(subject, subscriptionOptions);
+        this.logger.log(`Subscribed to ${subject} messages`);
+      }
+    })
   }
 
   private async setupStream() {
