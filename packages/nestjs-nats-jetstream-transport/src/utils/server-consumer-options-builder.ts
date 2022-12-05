@@ -3,9 +3,9 @@ import { ServerConsumerOptions } from '../interfaces/server-consumer-options.int
 
 export function serverConsumerOptionsBuilder(
   serverConsumerOptions: ServerConsumerOptions,
-  subject: string,
 ) {
   const {
+    subject,
     deliverGroup,
     deliverToSubject,
     deliverTo,
@@ -46,10 +46,7 @@ export function serverConsumerOptionsBuilder(
   deliverTo && opts.deliverTo(createInbox(deliverTo));
 
   description && opts.description(description);
-  durable &&
-    opts.durable(
-      `${durable}-${subject.replaceAll('.', '_').replaceAll('*', '_ALL')}`,
-    );
+  durable && opts.durable(durable);
   filterSubject && opts.filterSubject(filterSubject);
   flowControl && opts.flowControl();
   headersOnly && opts.headersOnly();

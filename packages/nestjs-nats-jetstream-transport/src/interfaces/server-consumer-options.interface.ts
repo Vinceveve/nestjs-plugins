@@ -38,7 +38,3 @@ export interface ServerConsumerOptions {
   deliverGroup?: string;
   headersOnly?: boolean;
 }
-
-export interface JetStreaConsumers {
-  consumers:ServerConsumerOptions[]
-}
