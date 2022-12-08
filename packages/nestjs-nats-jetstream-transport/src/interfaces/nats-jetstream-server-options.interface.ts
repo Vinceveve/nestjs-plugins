@@ -1,11 +1,8 @@
-import { JetStreamOptions } from 'nats';
-import { ServerConsumerOptions } from './server-consumer-options.interface';
-import { NatsConnectionOptions } from './nats-connection-options.interface';
+import { ConnectionOptions, JetStreamOptions } from 'nats';
 import { NatsStreamConfig } from './nats-stream-config.interface';
 
 export interface NatsJetStreamServerOptions {
-  connectionOptions: Partial<NatsConnectionOptions> &
-    Pick<NatsConnectionOptions, 'name'>;
+  connectionOptions: Partial<ConnectionOptions>;
   jetStreamOptions?: JetStreamOptions;
   streamConfig?: NatsStreamConfig;
 }

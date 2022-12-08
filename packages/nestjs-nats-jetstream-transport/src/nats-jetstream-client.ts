@@ -1,23 +1,45 @@
-import { Injectable } from '@nestjs/common';
-import { JetStreamPublishOptions, NatsConnection, PubAck } from 'nats';
-import { Observable } from 'rxjs';
-import { NatsJetStreamClientProxy } from './client';
-import { JetStreamEvent } from './interfaces/nats-event-options.interface';
+import { Injectable, Inject } from '@nestjs/common';
+import {
+  Codec,
+  JetStreamPublishOptions,
+  JSONCodec,
+  NatsConnection,
+  PubAck,
+  connect,
+} from 'nats';
+import { NATS_JETSTREAM_OPTIONS } from './constants';
+import { NatsJetStreamClientOptions } from './interfaces/nats-jetstream-client-options.interface';
 
 @Injectable()
 export class NatsJetStreamClient {
-  constructor(private client: NatsJetStreamClientProxy) {}
-  emit<TInput>(pattern: any, event: TInput, options?: JetStreamPublishOptions): Observable<PubAck> {
-    // TODO see if possible to keep same syntax with ClientProxy
-    return this.client.emit<PubAck, JetStreamEvent>(pattern, {event, options});
+  private nc: NatsConnection;
+  private codec: Codec<JSON>;
+
+  constructor(
+    @Inject(NATS_JETSTREAM_OPTIONS) private options: NatsJetStreamClientOptions,
+  ) {
+    this.codec = JSONCodec();
   }
-  send<TInput>(pattern: any, data: TInput): Observable<PubAck> {
-    return this.client.send<PubAck, TInput>(pattern, data);
+  async publish<JSON>(
+    pattern: any,
+    event: any,
+    publishOptions?: Partial<JetStreamPublishOptions>,
+  ): Promise<PubAck> {
+    const natsConnection = await this.assertConnection();
+    const payload = this.codec.encode(event);
+    const js = natsConnection.jetstream(this.options.jetStreamOption);
+    return js.publish(pattern, payload, publishOptions);
   }
-  async connect(): Promise<NatsConnection> {
-    return this.client.connect();
+  private async assertConnection(): Promise<NatsConnection> {
+    if (!this.nc) {
+      this.nc = await connect(this.options.connectionOptions);
+    }
+
+    return this.nc;
   }
-  async close(): Promise<void> {
-    return this.client.close();
+  private async close(): Promise<void> {
+    await this.nc.drain();
+    await this.nc.close();
+    this.nc = undefined;
   }
 }

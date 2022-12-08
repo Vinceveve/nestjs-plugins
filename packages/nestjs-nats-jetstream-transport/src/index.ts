@@ -1,5 +1,4 @@
 export * from './server';
-export * from './client';
 export * from './nats-jetstream-transport.module';
 export * from './interfaces/nats-connection-options.interface';
 export * from './interfaces/nats-jetstream-client-options.interface';
@@ -10,3 +9,4 @@ export * from './utils/server-consumer-options-builder';
 export * from './nats-jetstream.context';
 export * from './nats-jetstream-client';
 export * from './nats-jetstream-key-store';
+export * from './nats-jetstream-manager';

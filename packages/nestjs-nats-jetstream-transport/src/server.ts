@@ -7,6 +7,7 @@ import {
   JSONCodec,
   JetStreamManager,
   JetStreamSubscription,
+  JetStreamPullSubscription,
 } from 'nats';
 import { httpTransport, emitterFor, CloudEvent } from 'cloudevents';
 import { NatsContext, NatsJetStreamContext } from './nats-jetstream.context';
@@ -27,13 +28,9 @@ export class NatsJetStreamServer
     super();
     this.codec = JSONCodec();
   }
-
   async listen(callback: () => null) {
     if (!this.nc) {
       this.nc = await connect(this.options.connectionOptions);
-      if (this.options.connectionOptions.connectedHook) {
-        this.options.connectionOptions.connectedHook(this.nc);
-      }
     }
     this.jsm = await this.nc.jetstreamManager(this.options.jetStreamOptions);
     if (this.options.streamConfig) {
@@ -55,50 +52,68 @@ export class NatsJetStreamServer
       ([, handler]) => handler.isEventHandler,
     );
 
-    const js = this.nc.jetstream(this.options.jetStreamOptions);
     for (const [consumerName, eventHandler] of eventHandlers) {
       let subject: string;
       subject = eventHandler.extras?.subject;
+      // FIXME keep sugar here ?
       if (!subject) {
         subject = consumerName;
-        this.logger.log(
-          `No extra config set for EventPattern(${consumerName}) use transcient push consumer`,
+        const deliverTo = subject
+          .replaceAll('.', '_')
+          .replaceAll('*', 'ANY')
+          .replaceAll('>', 'ALL');
+
+        eventHandler.extras.deliverTo = deliverTo;
+        eventHandler.extras.deliverGroup = deliverTo;
+        this.logger.warn(
+          `Deprecated missing extra set for EventPattern(${consumerName}), use default : transcient push queue`,
         );
       }
-      const consumerOptions = serverConsumerOptionsBuilder(
+      this.subsribeConsumer(
+        subject,
+        eventHandler,
+        consumerName,
         eventHandler.extras as ServerConsumerOptions,
       );
-
-      // https://docs.nats.io/nats-concepts/jetstream/consumers
-      // Error: consumer info specifies deliver_subject - pull consumers cannot have deliver_subject set
-      // No extras or deliverTo = pull subscription
-      const subscription = eventHandler.extras?.deliverTo
-        ? await js.subscribe(subject, consumerOptions)
-        : await js.pullSubscribe(subject, consumerOptions);
-
-      this.logger.log(
-        `Subscribed to ${subject} events for ${consumerName} consumer `,
-      );
-      const done = (async () => {
-        for await (const msg of subscription) {
-          try {
-            const data = this.codec.decode(msg.data);
-            const context = new NatsJetStreamContext([msg]);
-            this.send(from(eventHandler(data, context)), () => null);
-          } catch (err) {
-            this.logger.error(err.message, err.stack);
-            // specifies that you failed to process the server and instructs
-            // the server to not send it again (to any consumer)
-            msg.term();
-          }
-        }
-      })();
-      done.then(() => {
-        subscription.destroy();
-        this.logger.log(`Unsubscribed ${subject} for consumer ${consumerName}`);
-      });
     }
-    // });
+  }
+  private async subsribeConsumer(
+    subject: string,
+    eventHandler: Function,
+    consumerName: string,
+    options?: ServerConsumerOptions,
+  ) {
+    const js = this.nc.jetstream(this.options.jetStreamOptions);
+    const consumerOptions = serverConsumerOptionsBuilder(
+      options as ServerConsumerOptions,
+    );
+
+    // https://docs.nats.io/nats-concepts/jetstream/consumers
+    // https://github.com/nats-io/nats.deno/blob/main/jetstream.md#push-subscriptions
+    // Error: consumer info specifies deliver_subject - pull consumers cannot have deliver_subject set
+    this.logger.log(
+      `Subscribed to ${subject} events for ${consumerName} consumer `,
+    );
+    const subscription = await js.subscribe(subject, consumerOptions);
+
+    const done = (async () => {
+      for await (const msg of subscription) {
+        try {
+          const data = this.codec.decode(msg.data);
+          const context = new NatsJetStreamContext([msg]);
+          this.send(from(eventHandler(data, context)), () => null);
+        } catch (err) {
+          this.logger.error(err.message, err.stack);
+          // specifies that you failed to process the server and instructs
+          // the server to not send it again (to any consumer)
+          msg.term();
+        }
+      }
+    })();
+    done.then(() => {
+      subscription.destroy();
+      this.logger.log(`Unsubscribed ${subject} for consumer ${consumerName}`);
+    });
   }
   // For classic nats message
   private bindMessageHandlers() {

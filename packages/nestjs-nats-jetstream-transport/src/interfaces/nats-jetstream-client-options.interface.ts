@@ -7,8 +7,7 @@ import {
 import { NatsConnectionOptions } from './nats-connection-options.interface';
 
 export interface NatsJetStreamClientOptions {
-  connectionOptions: Partial<NatsConnectionOptions> &
-    Pick<ConnectionOptions, 'name'>;
+  connectionOptions: Partial<ConnectionOptions>;
   jetStreamOption?: JetStreamOptions;
   jetStreamPublishOptions?: JetStreamPublishOptions;
 }
