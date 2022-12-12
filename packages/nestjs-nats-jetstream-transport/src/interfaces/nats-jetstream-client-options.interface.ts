@@ -1,15 +1,9 @@
 import { ModuleMetadata } from '@nestjs/common';
-import {
-  ConnectionOptions,
-  JetStreamOptions,
-  JetStreamPublishOptions,
-} from 'nats';
-import { NatsConnectionOptions } from './nats-connection-options.interface';
+import { ConnectionOptions, JetStreamOptions } from 'nats';
 
 export interface NatsJetStreamClientOptions {
   connectionOptions: Partial<ConnectionOptions>;
   jetStreamOption?: JetStreamOptions;
-  jetStreamPublishOptions?: JetStreamPublishOptions;
 }
 
 // noinspection JSUnusedGlobalSymbols

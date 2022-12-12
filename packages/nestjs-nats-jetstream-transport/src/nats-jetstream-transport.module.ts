@@ -4,6 +4,7 @@ import { NatsJetStreamClientOptions } from './interfaces/nats-jetstream-client-o
 import { NatsJetStreamClient } from './nats-jetstream-client';
 import { NatsJetStreamKeyStore } from './nats-jetstream-key-store';
 import { NatsJetStreamManager } from './nats-jetstream-manager';
+import { NatsJetStreamTransportConnection } from './nats-jetstream-transport.connection';
 
 // noinspection JSUnusedGlobalSymbols
 export class NatsJetStreamTransport {
@@ -13,6 +14,7 @@ export class NatsJetStreamTransport {
         provide: NATS_JETSTREAM_OPTIONS,
         useValue: options,
       },
+      NatsJetStreamTransportConnection,
       NatsJetStreamClient,
       NatsJetStreamKeyStore,
       NatsJetStreamManager,

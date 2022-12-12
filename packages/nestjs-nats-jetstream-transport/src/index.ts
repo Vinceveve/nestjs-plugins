@@ -10,3 +10,4 @@ export * from './nats-jetstream.context';
 export * from './nats-jetstream-client';
 export * from './nats-jetstream-key-store';
 export * from './nats-jetstream-manager';
+export * from './decorator/event-pattern.decorator';

@@ -3,13 +3,10 @@ import {
   Codec,
   connect,
   NatsConnection,
-  SubscriptionOptions,
   JSONCodec,
   JetStreamManager,
-  JetStreamSubscription,
-  JetStreamPullSubscription,
+  StreamConfig,
 } from 'nats';
-import { httpTransport, emitterFor, CloudEvent } from 'cloudevents';
 import { NatsContext, NatsJetStreamContext } from './nats-jetstream.context';
 import { serverConsumerOptionsBuilder } from './utils/server-consumer-options-builder';
 import { from } from 'rxjs';
@@ -33,8 +30,10 @@ export class NatsJetStreamServer
       this.nc = await connect(this.options.connectionOptions);
     }
     this.jsm = await this.nc.jetstreamManager(this.options.jetStreamOptions);
-    if (this.options.streamConfig) {
-      await this.setupStream();
+    if (this.options.assertStreams) {
+      for (const streamConfig of this.options.assertStreams) {
+        await this.setupStream(streamConfig as StreamConfig);
+      }
     }
 
     await this.bindEventHandlers();
@@ -148,8 +147,7 @@ export class NatsJetStreamServer
     // });
   }
 
-  private async setupStream() {
-    const { streamConfig } = this.options;
+  private async setupStream(streamConfig: StreamConfig) {
     const streams = await this.jsm.streams.list().next();
     const stream = streams.find(
       (stream) => stream.config.name === streamConfig.name,
@@ -164,7 +162,6 @@ export class NatsJetStreamServer
     } else {
       const streamInfo = await this.jsm.streams.add(streamConfig);
       this.logger.log(`Stream ${streamInfo.config.name} created`);
-      console.log(streamInfo.config);
     }
   }
 }

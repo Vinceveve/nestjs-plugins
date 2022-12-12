@@ -6,6 +6,7 @@ export function serverConsumerOptionsBuilder(
 ) {
   const {
     subject,
+    streamName,
     deliverGroup,
     deliverToSubject,
     deliverTo,
