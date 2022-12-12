@@ -1,8 +1,7 @@
-import { ConnectionOptions, JetStreamOptions } from 'nats';
-import { NatsStreamConfig } from './nats-stream-config.interface';
+import { ConnectionOptions, JetStreamOptions, StreamConfig } from 'nats';
 
 export interface NatsJetStreamServerOptions {
   connectionOptions: Partial<ConnectionOptions>;
   jetStreamOptions?: JetStreamOptions;
-  assertStreams?: NatsStreamConfig[];
+  assertStreams?: StreamConfig[];
 }

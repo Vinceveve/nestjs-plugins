@@ -7,11 +7,11 @@ import {
   JetStreamManager,
   StreamConfig,
 } from 'nats';
-import { NatsContext, NatsJetStreamContext } from './nats-jetstream.context';
+import { NatsJetStreamContext } from './nats-jetstream.context';
 import { serverConsumerOptionsBuilder } from './utils/server-consumer-options-builder';
 import { from } from 'rxjs';
 import { NatsJetStreamServerOptions } from './interfaces/nats-jetstream-server-options.interface';
-import { ServerConsumerOptions } from '@nestjs-plugins/nestjs-nats-jetstream-transport';
+import { ServerConsumerOptions } from './interfaces/server-consumer-options.interface';
 
 export class NatsJetStreamServer
   extends Server

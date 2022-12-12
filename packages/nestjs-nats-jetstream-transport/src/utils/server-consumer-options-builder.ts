@@ -33,7 +33,7 @@ export function serverConsumerOptionsBuilder(
   } = serverConsumerOptions;
 
   const opts = consumerOpts();
-
+  streamName && opts.bindStream(streamName);
   deliverGroup && opts.deliverGroup(deliverGroup);
   manualAck && opts.manualAck();
   ackPolicy === 'All' && opts.ackAll();
