@@ -11,7 +11,7 @@ import { NatsJetStreamContext } from './nats-jetstream.context';
 import { serverConsumerOptionsBuilder } from './utils/server-consumer-options-builder';
 import { from } from 'rxjs';
 import { NatsJetStreamServerOptions } from './interfaces/nats-jetstream-server-options.interface';
-import { ServerConsumerOptions } from './interfaces/server-consumer-options.interface';
+import { NatsJetStreamConsumerOptions } from './interfaces/nats-jetstream-consumer-options.interface';
 
 export class NatsJetStreamServer
   extends Server
@@ -72,7 +72,7 @@ export class NatsJetStreamServer
         subject,
         eventHandler,
         consumerName,
-        eventHandler.extras as ServerConsumerOptions,
+        eventHandler.extras as NatsJetStreamConsumerOptions,
       );
     }
   }
@@ -80,11 +80,11 @@ export class NatsJetStreamServer
     subject: string,
     eventHandler: Function,
     consumerName: string,
-    options?: ServerConsumerOptions,
+    options?: NatsJetStreamConsumerOptions,
   ) {
     const js = this.nc.jetstream(this.options.jetStreamOptions);
     const consumerOptions = serverConsumerOptionsBuilder(
-      options as ServerConsumerOptions,
+      options as NatsJetStreamConsumerOptions,
     );
 
     // https://docs.nats.io/nats-concepts/jetstream/consumers

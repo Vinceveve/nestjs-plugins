@@ -1,8 +1,8 @@
 import { consumerOpts, createInbox } from 'nats';
-import { ServerConsumerOptions } from '../interfaces/server-consumer-options.interface';
+import { NatsJetStreamConsumerOptions } from '../interfaces/nats-jetstream-consumer-options.interface';
 
 export function serverConsumerOptionsBuilder(
-  serverConsumerOptions: ServerConsumerOptions,
+  serverConsumerOptions: NatsJetStreamConsumerOptions,
 ) {
   const {
     subject,

@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Codec, JetStreamPublishOptions, JSONCodec, PubAck } from 'nats';
 import { NATS_JETSTREAM_OPTIONS } from './constants';
 import { NatsJetStreamClientOptions } from './interfaces/nats-jetstream-client-options.interface';
@@ -6,6 +6,7 @@ import { NatsJetStreamTransportConnection } from './nats-jetstream-transport.con
 
 @Injectable()
 export class NatsJetStreamClient {
+  private logger = new Logger(this.constructor.name);
   private codec: Codec<JSON>;
 
   constructor(
@@ -22,6 +23,11 @@ export class NatsJetStreamClient {
     const natsConnection = await this.nc.assertConnection();
     const payload = this.codec.encode(event);
     const js = natsConnection.jetstream(this.options.jetStreamOption);
+
+    this.logger.debug(
+      `Write ${event.type} on ${pattern} #${event.correlationId}`,
+    );
+    // console.log(pattern, event, publishOptions);
     return js.publish(pattern, payload, publishOptions);
   }
 }
